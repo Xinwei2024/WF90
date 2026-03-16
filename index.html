@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联想词实验</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入JSZip库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        h2 {
+            color: #3498db;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        .stage {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .stage.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.2s;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background-color: #7f8c8d;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #6c7b7d;
+        }
+        
+        .btn-success {
+            background-color: #2ecc71;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .instructions {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .instructions p {
+            margin-bottom: 10px;
+        }
+        
+        .word-display {
+            text-align: center;
+            margin: 40px 0;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .audio-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .audio-btn {
+            background-color: #9b59b6;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .audio-btn:hover {
+            background-color: #8e44ad;
+            transform: scale(1.05);
+        }
+        
+        .audio-btn.recording {
+            background-color: #e74c3c;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+        
+        .recording-status {
+            text-align: center;
+            margin: 15px 0;
+            font-weight: 600;
+            color: #e74c3c;
+            min-height: 24px;
+        }
+        
+        .word-inputs {
+            margin-top: 30px;
+        }
+        
+        .word-input-container {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .word-input-container.active input {
+            border-color: #3498db;
+            background-color: #f8f9fa;
+        }
+        
+        .word-input-container.completed input {
+            border-color: #2ecc71;
+        }
+        
+        .input-indicator {
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .word-input-container.active .input-indicator {
+            background-color: #3498db;
+        }
+        
+        .word-input-container.completed .input-indicator {
+            background-color: #2ecc71;
+        }
+        
+        .progress-container {
+            margin: 30px 0;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: #2ecc71;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+        
+        .experiment-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .data-download {
+            text-align: center;
+            margin-top: 30px;
+            padding: 25px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .warning {
+            color: #e74c3c;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        
+        .keyboard-hint {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        .keyboard-hint kbd {
+            background-color: #eee;
+            border-radius: 3px;
+            border: 1px solid #b4b4b4;
+            box-shadow: 0 1px 1px rgba(0,0,0,.2);
+            color: #333;
+            display: inline-block;
+            font-size: 12px;
+            line-height: 1;
+            padding: 2px 4px;
+            margin: 0 2px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .audio-status {
+            text-align: center;
+            margin: 10px 0;
+            color: #7f8c8d;
+            font-style: italic;
+            min-height: 24px;
+        }
+        
+        .download-progress {
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .progress-info {
+            text-align: center;
+            margin-top: 10px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .word-display {
+                font-size: 2rem;
+            }
+            
+            .experiment-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-brain"></i> 联想词实验</h1>
+        
+        <!-- 指导语阶段 -->
+        <div id="stage-instructions" class="stage active">
+            <h2>实验指导语</h2>
+            <div class="instructions">
+                <p>欢迎参加本次联想词实验！</p>
+                <p>在本实验中，您将看到一系列词语，并同时听到它们的发音。</p>
+                <p>您的任务是：<strong>在听到词语后，快速说出脑海中浮现的前三个联想词</strong>。</p>
+                <p>实验分为两个部分：</p>
+                <ol>
+                    <li><strong>练习阶段</strong>：包含3个词语，帮助您熟悉实验流程</li>
+                    <li><strong>正式实验</strong>：包含90个词语</li>
+                </ol>
+                <p><strong>实验流程：</strong></p>
+                <ul>
+                    <li>每个词语出现时，<strong>音频会自动播放</strong></li>
+                    <li>音频播放结束后，<strong>会自动开始录音</strong></li>
+                    <li>听到词语后，立即说出三个联想词（请尽量快速反应）</li>
+                    <li>说完后按下<strong>空格键</strong>结束录音</li>
+                    <li>然后在文本框中逐一输入您刚才说出的三个联想词</li>
+                    <li>使用<strong>Tab键或Enter键</strong>在输入框之间切换</li>
+                    <li>全部输入完成后按<strong>Enter键</strong>进入下一试次</li>
+                </ul>
+                <div class="keyboard-hint">
+                    <p><strong>键盘快捷键：</strong></p>
+                    <p><kbd>空格键</kbd> - 结束录音</p>
+                    <p><kbd>Tab键</kbd> - 切换到下一个输入框</p>
+                    <p><kbd>Shift</kbd> + <kbd>Tab</kbd> - 切换到上一个输入框</p>
+                    <p><kbd>Enter键</kbd> - 在当前输入框完成输入/进入下一试次</p>
+                </div>
+                <p class="warning">请注意：实验需要录音权限，请确保允许浏览器使用麦克风。</p>
+            </div>
+            <button id="btn-next-from-instructions" class="btn">开始实验</button>
+        </div>
+        
+        <!-- 个人信息阶段 -->
+        <div id="stage-info" class="stage">
+            <h2>个人信息</h2>
+            <p>请填写以下个人信息，所有数据仅用于研究目的，将会被匿名处理。</p>
+            
+            <div class="form-group">
+                <label for="participant-id">姓名：</label>
+                <input type="text" id="participant-id" placeholder="例如：张三">
+            </div>
+            
+            <div class="form-group">
+                <label for="participant-age">年龄：</label>
+                <input type="number" id="participant-age" min="18" max="80" placeholder="请输入您的年龄">
+            </div>
+            
+            <div class="form-group">
+                <label for="participant-gender">性别：</label>
+                <select id="participant-gender">
+                    <option value="">请选择性别</option>
+                    <option value="male">男性</option>
+                    <option value="female">女性</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="experiment-date">实验日期：</label>
+                <input type="date" id="experiment-date">
+            </div>
+            
+            <div class="experiment-controls">
+                <button id="btn-back-to-instructions" class="btn btn-secondary">返回</button>
+                <button id="btn-next-from-info" class="btn">开始练习阶段</button>
+            </div>
+        </div>
+        
+        <!-- 录音权限请求阶段 -->
+        <div id="stage-permission" class="stage">
+            <h2>请求录音权限</h2>
+            <div class="instructions">
+                <p>实验需要录音功能，请在下一步中允许浏览器使用麦克风。</p>
+                <p>点击下方按钮请求录音权限：</p>
+                <button id="btn-request-permission" class="btn">
+                    <i class="fas fa-microphone"></i> 请求录音权限
+                </button>
+                <div id="permission-status" class="recording-status"></div>
+                <p class="warning">如果权限请求失败，实验将无法正常进行。</p>
+            </div>
+            
+            <div class="experiment-controls">
+                <button id="btn-back-to-info-from-permission" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+        
+        <!-- 练习阶段 -->
+        <div id="stage-practice" class="stage">
+            <h2>练习阶段</h2>
+            <p>请先完成3个练习词语以熟悉实验流程。</p>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="practice-progress" class="progress"></div>
+                </div>
+                <div id="practice-progress-text" class="progress-text">进度: 0/3</div>
+            </div>
+            
+            <div id="practice-word-display" class="word-display"></div>
+            
+            <div id="practice-audio-status" class="audio-status"></div>
+            
+            <div class="audio-controls">
+                <button id="practice-play-audio" class="audio-btn">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button id="practice-start-recording" class="audio-btn hidden">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button id="practice-stop-recording" class="audio-btn hidden">
+                    <i class="fas fa-stop"></i>
+                </button>
+            </div>
+            
+            <div id="practice-recording-status" class="recording-status"></div>
+            
+            <div id="practice-word-inputs" class="word-inputs hidden">
+                <h3>请输入您刚才说出的三个联想词：</h3>
+                <div class="word-input-container" id="practice-word-1-container">
+                    <div class="input-indicator">1</div>
+                    <label for="practice-word-1">联想词 1：</label>
+                    <input type="text" id="practice-word-1" placeholder="请输入第一个联想词">
+                </div>
+                <div class="word-input-container" id="practice-word-2-container">
+                    <div class="input-indicator">2</div>
+                    <label for="practice-word-2">联想词 2：</label>
+                    <input type="text" id="practice-word-2" placeholder="请输入第二个联想词">
+                </div>
+                <div class="word-input-container" id="practice-word-3-container">
+                    <div class="input-indicator">3</div>
+                    <label for="practice-word-3">联想词 3：</label>
+                    <input type="text" id="practice-word-3" placeholder="请输入第三个联想词">
+                </div>
+                
+                <div class="keyboard-hint">
+                    <p><strong>提示：</strong>使用 <kbd>Tab</kbd> 键切换输入框，三个词都输入完成后按 <kbd>Enter</kbd> 键进入下一试次</p>
+                </div>
+            </div>
+            
+            <div class="experiment-controls">
+                <button id="btn-back-to-permission-from-practice" class="btn btn-secondary">返回</button>
+                <button id="btn-skip-practice" class="btn btn-secondary">跳过练习</button>
+            </div>
+        </div>
+        
+        <!-- 正式实验阶段 -->
+        <div id="stage-experiment" class="stage">
+            <h2>正式实验</h2>
+            <p>现在开始正式实验，共90个词语。请按照练习阶段的流程完成实验。</p>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="experiment-progress" class="progress"></div>
+                </div>
+                <div id="experiment-progress-text" class="progress-text">进度: 0/90</div>
+            </div>
+            
+            <div id="experiment-word-display" class="word-display"></div>
+            
+            <div id="experiment-audio-status" class="audio-status"></div>
+            
+            <div class="audio-controls">
+                <button id="experiment-play-audio" class="audio-btn">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button id="experiment-start-recording" class="audio-btn hidden">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button id="experiment-stop-recording" class="audio-btn hidden">
+                    <i class="fas fa-stop"></i>
+                </button>
+            </div>
+            
+            <div id="experiment-recording-status" class="recording-status"></div>
+            
+            <div id="experiment-word-inputs" class="word-inputs hidden">
+                <h3>请输入您刚才说出的三个联想词：</h3>
+                <div class="word-input-container" id="experiment-word-1-container">
+                    <div class="input-indicator">1</div>
+                    <label for="experiment-word-1">联想词 1：</label>
+                    <input type="text" id="experiment-word-1" placeholder="请输入第一个联想词">
+                </div>
+                <div class="word-input-container" id="experiment-word-2-container">
+                    <div class="input-indicator">2</div>
+                    <label for="experiment-word-2">联想词 2：</label>
+                    <input type="text" id="experiment-word-2" placeholder="请输入第二个联想词">
+                </div>
+                <div class="word-input-container" id="experiment-word-3-container">
+                    <div class="input-indicator">3</div>
+                    <label for="experiment-word-3">联想词 3：</label>
+                    <input type="text" id="experiment-word-3" placeholder="请输入第三个联想词">
+                </div>
+                
+                <div class="keyboard-hint">
+                    <p><strong>提示：</strong>使用 <kbd>Tab</kbd> 键切换输入框，三个词都输入完成后按 <kbd>Enter</kbd> 键进入下一试次</p>
+                </div>
+            </div>
+            
+            <div class="experiment-controls">
+                <button id="btn-back-to-practice" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+        
+        <!-- 结束阶段 -->
+        <div id="stage-complete" class="stage">
+            <h2>实验完成</h2>
+            <div class="instructions">
+                <p><i class="fas fa-check-circle" style="color: #2ecc71; font-size: 2rem; margin-bottom: 15px;"></i></p>
+                <p>感谢您完成本次实验！您的所有数据已保存。</p>
+                <p>请下载实验数据压缩包，并将其提交给实验主持者。</p>
+                <p class="warning">压缩包包含：实验数据JSON文件、实验摘要TXT文件、所有录音音频文件（WAV格式）</p>
+            </div>
+            
+            <div class="data-download">
+                <h3>实验数据</h3>
+                <p>您的实验数据已准备就绪，请下载完整压缩包：</p>
+                
+                <div class="download-progress" id="download-progress">
+                    <div class="progress-bar">
+                        <div id="download-progress-bar" class="progress" style="width: 0%;"></div>
+                    </div>
+                    <div id="download-progress-text" class="progress-info">正在准备下载文件...</div>
+                </div>
+                
+                <button id="btn-download-data" class="btn btn-success">
+                    <i class="fas fa-download"></i> 下载实验数据压缩包
+                </button>
+                <p class="warning">请务必保存此压缩包文件，实验主持者需要此文件进行数据分析。</p>
+            </div>
+            
+            <div id="data-summary" class="instructions" style="margin-top: 30px;">
+                <!-- 数据摘要将在这里动态生成 -->
+            </div>
+            
+            <div class="footer">
+                <p>联想词实验 &copy; 2023 - 心理学实验平台</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 实验配置
+        const config = {
+            // 练习词表
+            practiceWordList: [
+                { text: "月亮", audioFile: "audio/yueliang.mp3" },
+                { text: "唱歌", audioFile: "audio/changge.mp3" },
+                { text: "胖", audioFile: "audio/pang.mp3" }
+            ],
+            
+            // 正式词表
+            wordList: [
+                { text: "写", audioFile: "words_mp3/xie_1.mp3" },
+                { text: "买", audioFile: "words_mp3/mai_1.mp3" },
+                { text: "抓", audioFile: "words_mp3/zhua_1.mp3" },
+                { text: "抱", audioFile: "words_mp3/bao_1.mp3" },
+                { text: "洗", audioFile: "words_mp3/xi_1.mp3" },
+                { text: "拿", audioFile: "words_mp3/na_1.mp3" },
+                { text: "唱", audioFile: "words_mp3/chang_1.mp3" },
+                { text: "猜", audioFile: "words_mp3/cai_1.mp3" },
+                { text: "跑", audioFile: "words_mp3/pao_1.mp3" },
+                { text: "适合", audioFile: "words_mp3/shihe_1.mp3" },
+                { text: "帮忙", audioFile: "words_mp3/bangmang_1.mp3" },
+                { text: "(表)演", audioFile: "words_mp3/yan_1.mp3" },
+                { text: "吹", audioFile: "words_mp3/chui_1.mp3" },
+                { text: "泼", audioFile: "words_mp3/po_1.mp3" },
+                { text: "捡", audioFile: "words_mp3/jian_1.mp3" },
+                { text: "修", audioFile: "words_mp3/xiu_1.mp3" },
+                { text: "打扫", audioFile: "words_mp3/dasao_1.mp3" },
+                { text: "敲", audioFile: "words_mp3/qiao_1.mp3" },
+                { text: "踢", audioFile: "words_mp3/ti_1.mp3" },
+                { text: "搬", audioFile: "words_mp3/ban_1.mp3" },
+                { text: "擦", audioFile: "words_mp3/ca_1.mp3" },
+                { text: "挑(选)", audioFile: "words_mp3/tiao_1.mp3" },
+                { text: "盼望", audioFile: "words_mp3/panwang_1.mp3" },
+                { text: "(假)装", audioFile: "words_mp3/zhuang_1.mp3" },
+                { text: "吃", audioFile: "words_mp3/chi_1.mp3" },
+                { text: "玩", audioFile: "words_mp3/wan_1.mp3" },
+                { text: "听", audioFile: "words_mp3/ting_1.mp3" },
+                { text: "坐", audioFile: "words_mp3/zuo_1.mp3" },
+                { text: "摸", audioFile: "words_mp3/mo_1.mp3" },
+                { text: "骗", audioFile: "words_mp3/pian_1.mp3" },
+                { text: "手", audioFile: "words_mp3/shou_1.mp3" },
+                { text: "饭", audioFile: "words_mp3/fan_1.mp3" },
+                { text: "雨", audioFile: "words_mp3/yu_1.mp3" },
+                { text: "茶", audioFile: "words_mp3/cha_1.mp3" },
+                { text: "钱", audioFile: "words_mp3/qian_1.mp3" },
+                { text: "房子", audioFile: "words_mp3/fangzi_1.mp3" },
+                { text: "医生", audioFile: "words_mp3/yisheng_1.mp3" },
+                { text: "衣服", audioFile: "words_mp3/yifu_1.mp3" },
+                { text: "故事", audioFile: "words_mp3/gushi_1.mp3" },
+                { text: "眼睛", audioFile: "words_mp3/yanjing_1.mp3" },
+                { text: "针", audioFile: "words_mp3/zhen_1.mp3" },
+                { text: "草", audioFile: "words_mp3/cao_1.mp3" },
+                { text: "烟", audioFile: "words_mp3/yan_1.mp3" },
+                { text: "沙发", audioFile: "words_mp3/shafa_1.mp3" },
+                { text: "面包", audioFile: "words_mp3/mianbao_1.mp3" },
+                { text: "帽子", audioFile: "words_mp3/maozi_1.mp3" },
+                { text: "闹钟", audioFile: "words_mp3/naozhong_1.mp3" },
+                { text: "空调", audioFile: "words_mp3/kongtiao_1.mp3" },
+                { text: "窗帘", audioFile: "words_mp3/chuanglian_1.mp3" },
+                { text: "玻璃", audioFile: "words_mp3/boli_1.mp3" },
+                { text: "家", audioFile: "words_mp3/jia_1.mp3" },
+                { text: "心", audioFile: "words_mp3/xin_1.mp3" },
+                { text: "电话", audioFile: "words_mp3/dianhua_1.mp3" },
+                { text: "车", audioFile: "words_mp3/che_1.mp3" },
+                { text: "妈妈", audioFile: "words_mp3/mama_1.mp3" },
+                { text: "头", audioFile: "words_mp3/tou_1.mp3" },
+                { text: "礼物", audioFile: "words_mp3/liwu_1.mp3" },
+                { text: "书", audioFile: "words_mp3/shu_1.mp3" },
+                { text: "太阳", audioFile: "words_mp3/taiyang_1.mp3" },
+                { text: "船", audioFile: "words_mp3/chuan_1.mp3" },
+                { text: "乖", audioFile: "words_mp3/guai_1.mp3" },
+                { text: "坏了", audioFile: "words_mp3/huaile_1.mp3" },
+                { text: "冷", audioFile: "words_mp3/leng_1.mp3" },
+                { text: "可爱", audioFile: "words_mp3/keai_1.mp3" },
+                { text: "多", audioFile: "words_mp3/duo_1.mp3" },
+                { text: "好听", audioFile: "words_mp3/haoting_1.mp3" },
+                { text: "安静", audioFile: "words_mp3/anjing_1.mp3" },
+                { text: "小", audioFile: "words_mp3/xiao_1.mp3" },
+                { text: "干净", audioFile: "words_mp3/ganjing_1.mp3" },
+                { text: "慢", audioFile: "words_mp3/man_1.mp3" },
+                { text: "新", audioFile: "words_mp3/xin_1.mp3" },
+                { text: "淘气", audioFile: "words_mp3/taoqi_1.mp3" },
+                { text: "渴", audioFile: "words_mp3/ke_1.mp3" },
+                { text: "湿", audioFile: "words_mp3/shi_1.mp3" },
+                { text: "满", audioFile: "words_mp3/man_1.mp3" },
+                { text: "烫", audioFile: "words_mp3/tang_1.mp3" },
+                { text: "甜", audioFile: "words_mp3/tian_1.mp3" },
+                { text: "痛", audioFile: "words_mp3/tong_1.mp3" },
+                { text: "硬", audioFile: "words_mp3/ying_1.mp3" },
+                { text: "穷", audioFile: "words_mp3/qiong_1.mp3" },
+                { text: "空的", audioFile: "words_mp3/kong_1.mp3" },
+                { text: "老", audioFile: "words_mp3/lao_1.mp3" },
+                { text: "聪明", audioFile: "words_mp3/congming_1.mp3" },
+                { text: "舒服", audioFile: "words_mp3/shufu_1.mp3" },
+                { text: "轻", audioFile: "words_mp3/qing_1.mp3" },
+                { text: "辣", audioFile: "words_mp3/la_1.mp3" },
+                { text: "饿", audioFile: "words_mp3/e_1.mp3" },
+                { text: "高", audioFile: "words_mp3/gao_1.mp3" },
+                { text: "困（了）", audioFile: "words_mp3/kun_1.mp3" },
+                { text: "伤心", audioFile: "words_mp3/shangxin_1.mp3" },
+            ]
+        };
+
+        // 实验状态
+        const experimentState = {
+            currentStage: "instructions",
+            participantInfo: {
+                id: "",
+                age: "",
+                gender: "",
+                date: ""
+            },
+            practice: {
+                currentIndex: 0,
+                words: [...config.practiceWordList],
+                responses: [],
+                currentInputIndex: 0,
+                isAudioPlaying: false,
+                startTime: null,
+                endTime: null
+            },
+            experiment: {
+                currentIndex: 0,
+                words: [],
+                responses: [],
+                currentInputIndex: 0,
+                isAudioPlaying: false,
+                startTime: null,
+                endTime: null
+            },
+            recording: {
+                isRecording: false,
+                audioContext: null,
+                processor: null,
+                audioData: [],
+                startTime: null,
+                permissionGranted: false,
+                audioStream: null,
+                currentAudioBlob: null,
+                currentAudioURL: null
+            },
+            audioElements: {},
+            currentAudio: null,
+            experimentStartTime: null,
+            experimentEndTime: null
+        };
+
+        // WAV编码函数
+        function encodeWAV(samples, sampleRate) {
+            const buffer = new ArrayBuffer(44 + samples.length * 2);
+            const view = new DataView(buffer);
+            
+            /* RIFF identifier */
+            writeString(view, 0, 'RIFF');
+            /* RIFF chunk length */
+            view.setUint32(4, 36 + samples.length * 2, true);
+            /* RIFF type */
+            writeString(view, 8, 'WAVE');
+            /* format chunk identifier */
+            writeString(view, 12, 'fmt ');
+            /* format chunk length */
+            view.setUint32(16, 16, true);
+            /* sample format (raw) */
+            view.setUint16(20, 1, true);
+            /* channel count */
+            view.setUint16(22, 1, true);
+            /* sample rate */
+            view.setUint32(24, sampleRate, true);
+            /* byte rate (sample rate * block align) */
+            view.setUint32(28, sampleRate * 2, true);
+            /* block align (channel count * bytes per sample) */
+            view.setUint16(32, 2, true);
+            /* bits per sample */
+            view.setUint16(34, 16, true);
+            /* data chunk identifier */
+            writeString(view, 36, 'data');
+            /* data chunk length */
+            view.setUint32(40, samples.length * 2, true);
+            
+            // Write the PCM samples
+            let offset = 44;
+            for (let i = 0; i < samples.length; i++, offset += 2) {
+                const s = Math.max(-1, Math.min(1, samples[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+            
+            return buffer;
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        // DOM元素引用
+        const stages = {
+            instructions: document.getElementById('stage-instructions'),
+            info: document.getElementById('stage-info'),
+            permission: document.getElementById('stage-permission'),
+            practice: document.getElementById('stage-practice'),
+            experiment: document.getElementById('stage-experiment'),
+            complete: document.getElementById('stage-complete')
+        };
+
+        // 切换到指定阶段
+        function goToStage(stageName) {
+            // 隐藏所有阶段
+            Object.values(stages).forEach(stage => {
+                stage.classList.remove('active');
+            });
+            
+            // 显示目标阶段
+            stages[stageName].classList.add('active');
+            experimentState.currentStage = stageName;
+            
+            // 初始化特定阶段
+            if (stageName === 'permission') {
+                // 在进入权限阶段时自动请求权限
+                setTimeout(requestPermissionOnLoad, 300);
+            } else if (stageName === 'practice') {
+                initPracticeStage();
+            } else if (stageName === 'experiment') {
+                initExperimentStage();
+            } else if (stageName === 'complete') {
+                prepareDownloadData();
+            }
+        }
+
+        // 初始化练习阶段
+        function initPracticeStage() {
+            // 重置练习状态
+            experimentState.practice.currentIndex = 0;
+            experimentState.practice.responses = [];
+            experimentState.practice.currentInputIndex = 0;
+            experimentState.practice.startTime = new Date();
+            
+            // 重置录音状态
+            resetRecordingState('practice');
+            
+            // 显示第一个练习词
+            showPracticeWord();
+            
+            // 更新进度条
+            updatePracticeProgress();
+            
+            // 自动播放第一个词的音频（延迟一下）
+            setTimeout(() => {
+                playPracticeAudio();
+            }, 800);
+        }
+
+        // 显示当前练习词
+        function showPracticeWord() {
+            const currentWord = experimentState.practice.words[experimentState.practice.currentIndex];
+            document.getElementById('practice-word-display').textContent = currentWord.text;
+            
+            // 重置输入区域
+            document.getElementById('practice-word-inputs').classList.add('hidden');
+            document.getElementById('practice-start-recording').classList.add('hidden');
+            document.getElementById('practice-stop-recording').classList.add('hidden');
+            document.getElementById('practice-recording-status').textContent = '';
+            document.getElementById('practice-audio-status').textContent = '';
+            
+            // 重置输入框
+            document.getElementById('practice-word-1').value = '';
+            document.getElementById('practice-word-2').value = '';
+            document.getElementById('practice-word-3').value = '';
+            
+            // 重置输入框状态
+            resetInputContainers('practice');
+            
+            // 预加载音频
+            preloadAudio(currentWord.audioFile);
+        }
+
+        // 播放练习音频
+        function playPracticeAudio() {
+            const currentWord = experimentState.practice.words[experimentState.practice.currentIndex];
+            const audioStatus = document.getElementById('practice-audio-status');
+            
+            if (!experimentState.recording.permissionGranted) {
+                audioStatus.textContent = "正在请求录音权限...";
+                requestPermission().then(granted => {
+                    if (granted) {
+                        actuallyPlayPracticeAudio();
+                    } else {
+                        audioStatus.textContent = "录音权限未授予，可以手动开始录音";
+                        document.getElementById('practice-start-recording').classList.remove('hidden');
+                    }
+                });
+            } else {
+                actuallyPlayPracticeAudio();
+            }
+        }
+
+        // 实际播放练习音频
+        function actuallyPlayPracticeAudio() {
+            const currentWord = experimentState.practice.words[experimentState.practice.currentIndex];
+            const audioStatus = document.getElementById('practice-audio-status');
+            
+            audioStatus.textContent = "正在播放音频...";
+            experimentState.practice.isAudioPlaying = true;
+            
+            // 重置录音状态
+            resetRecordingState('practice');
+            
+            playAudio(currentWord.audioFile, () => {
+                audioStatus.textContent = "音频播放完成，准备开始录音...";
+                experimentState.practice.isAudioPlaying = false;
+                
+                // 延迟1秒后开始录音
+                setTimeout(() => {
+                    startRecording('practice');
+                }, 1000);
+            });
+        }
+
+        // 更新练习进度
+        function updatePracticeProgress() {
+            const progress = (experimentState.practice.currentIndex / experimentState.practice.words.length) * 100;
+            document.getElementById('practice-progress').style.width = `${progress}%`;
+            document.getElementById('practice-progress-text').textContent = 
+                `进度: ${experimentState.practice.currentIndex}/${experimentState.practice.words.length}`;
+        }
+
+        // 初始化正式实验阶段
+        function initExperimentStage() {
+            // 记录实验开始时间
+            experimentState.experimentStartTime = new Date();
+            
+            // 如果没有加载词表，先加载并随机排序
+            if (experimentState.experiment.words.length === 0) {
+                experimentState.experiment.words = [...config.wordList].sort(() => Math.random() - 0.5);
+                console.log("✅ 正式词表加载:", experimentState.experiment.words.length);
+            }
+            
+            // 重置实验状态
+            experimentState.experiment.currentIndex = 0;
+            experimentState.experiment.responses = [];
+            experimentState.experiment.currentInputIndex = 0;
+            experimentState.experiment.startTime = new Date();
+            
+            // 重置录音状态
+            resetRecordingState('experiment');
+            
+            // 显示第一个词
+            showExperimentWord();
+            
+            // 更新进度条
+            updateExperimentProgress();
+            
+            // 自动播放第一个词的音频
+            setTimeout(() => {
+                playExperimentAudio();
+            }, 800);
+        }
+
+        // 显示当前实验词
+        function showExperimentWord() {
+            const currentWord = experimentState.experiment.words[experimentState.experiment.currentIndex];
+            document.getElementById('experiment-word-display').textContent = currentWord.text;
+            
+            // 重置输入区域
+            document.getElementById('experiment-word-inputs').classList.add('hidden');
+            document.getElementById('experiment-start-recording').classList.add('hidden');
+            document.getElementById('experiment-stop-recording').classList.add('hidden');
+            document.getElementById('experiment-recording-status').textContent = '';
+            document.getElementById('experiment-audio-status').textContent = '';
+            
+            // 重置输入框
+            document.getElementById('experiment-word-1').value = '';
+            document.getElementById('experiment-word-2').value = '';
+            document.getElementById('experiment-word-3').value = '';
+            
+            // 重置输入框状态
+            resetInputContainers('experiment');
+            
+            // 预加载音频
+            preloadAudio(currentWord.audioFile);
+        }
+
+        // 播放实验音频
+        function playExperimentAudio() {
+            const currentWord = experimentState.experiment.words[experimentState.experiment.currentIndex];
+            const audioStatus = document.getElementById('experiment-audio-status');
+            
+            if (!experimentState.recording.permissionGranted) {
+                audioStatus.textContent = "正在请求录音权限...";
+                requestPermission().then(granted => {
+                    if (granted) {
+                        actuallyPlayExperimentAudio();
+                    } else {
+                        audioStatus.textContent = "录音权限未授予，可以手动开始录音";
+                        document.getElementById('experiment-start-recording').classList.remove('hidden');
+                    }
+                });
+            } else {
+                actuallyPlayExperimentAudio();
+            }
+        }
+
+        // 实际播放实验音频
+        function actuallyPlayExperimentAudio() {
+            const currentWord = experimentState.experiment.words[experimentState.experiment.currentIndex];
+            const audioStatus = document.getElementById('experiment-audio-status');
+            
+            audioStatus.textContent = "正在播放音频...";
+            experimentState.experiment.isAudioPlaying = true;
+            
+            // 重置录音状态
+            resetRecordingState('experiment');
+            
+            playAudio(currentWord.audioFile, () => {
+                audioStatus.textContent = "音频播放完成，准备开始录音...";
+                experimentState.experiment.isAudioPlaying = false;
+                
+                // 延迟1秒后开始录音
+                setTimeout(() => {
+                    startRecording('experiment');
+                }, 1000);
+            });
+        }
+
+        // 更新实验进度
+        function updateExperimentProgress() {
+            const progress = (experimentState.experiment.currentIndex / experimentState.experiment.words.length) * 100;
+            document.getElementById('experiment-progress').style.width = `${progress}%`;
+            document.getElementById('experiment-progress-text').textContent = 
+                `进度: ${experimentState.experiment.currentIndex}/${experimentState.experiment.words.length}`;
+        }
+
+        // 预加载音频
+        function preloadAudio(audioFile) {
+            if (!experimentState.audioElements[audioFile]) {
+                const audio = new Audio();
+                audio.src = audioFile;
+                audio.preload = 'auto';
+                experimentState.audioElements[audioFile] = audio;
+            }
+        }
+
+        // 播放音频（带完成回调）
+        function playAudio(audioFile, onComplete) {
+            // 停止当前播放的音频
+            if (experimentState.currentAudio) {
+                experimentState.currentAudio.pause();
+                experimentState.currentAudio.currentTime = 0;
+            }
+            
+            try {
+                let audio;
+                if (experimentState.audioElements[audioFile]) {
+                    audio = experimentState.audioElements[audioFile];
+                } else {
+                    audio = new Audio(audioFile);
+                    experimentState.audioElements[audioFile] = audio;
+                    
+                    // 预加载音频
+                    audio.preload = 'auto';
+                    
+                    // 设置错误处理
+                    audio.onerror = () => {
+                        console.error(`音频加载失败: ${audioFile}`);
+                        if (onComplete) {
+                            setTimeout(onComplete, 1000);
+                        }
+                    };
+                }
+                
+                experimentState.currentAudio = audio;
+                
+                // 重置音频并播放
+                audio.currentTime = 0;
+                
+                // 播放音频
+                const playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log(`音频播放开始: ${audioFile}`);
+                    }).catch(error => {
+                        console.error("音频播放失败:", error);
+                        if (onComplete) {
+                            setTimeout(onComplete, 1000);
+                        }
+                    });
+                }
+                
+                // 音频结束时处理
+                audio.onended = () => {
+                    console.log(`音频播放完成: ${audioFile}`);
+                    if (onComplete) {
+                        onComplete();
+                    }
+                };
+                
+            } catch (error) {
+                console.error("播放音频出错:", error);
+                if (onComplete) {
+                    setTimeout(onComplete, 1000);
+                }
+            }
+        }
+
+        // 请求录音权限
+        async function requestPermission() {
+            try {
+                // 如果已有权限，直接返回
+                if (experimentState.recording.audioStream) {
+                    experimentState.recording.permissionGranted = true;
+                    return true;
+                }
+                
+                // 请求音频权限，优化音频质量设置
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 44100,
+                        channelCount: 1
+                    },
+                    video: false
+                });
+                
+                // 保存stream到全局状态
+                experimentState.recording.audioStream = stream;
+                experimentState.recording.permissionGranted = true;
+                
+                console.log("录音权限已授予");
+                return true;
+            } catch (error) {
+                console.error("录音权限请求失败:", error);
+                experimentState.recording.permissionGranted = false;
+                
+                // 提供更详细的错误信息
+                let errorMessage = "无法访问麦克风。";
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += "请允许浏览器使用麦克风。";
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += "未找到麦克风设备。";
+                } else if (error.name === 'NotReadableError') {
+                    errorMessage += "麦克风被其他应用占用。";
+                }
+                
+                alert(errorMessage);
+                return false;
+            }
+        }
+
+        // 页面加载时尝试请求权限
+        async function requestPermissionOnLoad() {
+            const permissionStatus = document.getElementById('permission-status');
+            permissionStatus.textContent = "正在请求录音权限...";
+            
+            try {
+                const granted = await requestPermission();
+                
+                if (granted) {
+                    permissionStatus.textContent = "✓ 录音权限已授予";
+                    permissionStatus.style.color = "#2ecc71";
+                    
+                    // 权限获取成功后自动进入下一阶段
+                    setTimeout(() => {
+                        goToStage('practice');
+                    }, 1000);
+                } else {
+                    permissionStatus.textContent = "✗ 录音权限被拒绝";
+                    permissionStatus.style.color = "#e74c3c";
+                }
+            } catch (error) {
+                permissionStatus.textContent = "✗ 权限请求出错";
+                permissionStatus.style.color = "#e74c3c";
+            }
+        }
+
+        // 开始录音（WAV格式）
+        async function startRecording(stage) {
+            try {
+                // 确保有录音权限
+                if (!experimentState.recording.permissionGranted || !experimentState.recording.audioStream) {
+                    console.log("请求录音权限...");
+                    const granted = await requestPermission();
+                    if (!granted) {
+                        alert("无法访问麦克风。请确保已授予麦克风权限。");
+                        return false;
+                    }
+                }
+                
+                // 创建音频上下文
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // 创建音频节点
+                const source = audioContext.createMediaStreamSource(experimentState.recording.audioStream);
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                // 存储音频数据
+                const audioData = [];
+                
+                processor.onaudioprocess = function(e) {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    audioData.push(new Float32Array(inputData));
+                };
+                
+                // 连接节点
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                // 保存录音开始时间
+                experimentState.recording.startTime = Date.now();
+                experimentState.recording.audioContext = audioContext;
+                experimentState.recording.processor = processor;
+                experimentState.recording.audioData = audioData;
+                experimentState.recording.isRecording = true;
+                
+                // 更新UI状态
+                if (stage === 'practice') {
+                    document.getElementById('practice-recording-status').textContent = "录音中... 说完后请按空格键";
+                    document.getElementById('practice-start-recording').classList.add('hidden');
+                    document.getElementById('practice-stop-recording').classList.remove('hidden');
+                    document.getElementById('practice-stop-recording').classList.add('recording');
+                } else {
+                    document.getElementById('experiment-recording-status').textContent = "录音中... 说完后请按空格键";
+                    document.getElementById('experiment-start-recording').classList.add('hidden');
+                    document.getElementById('experiment-stop-recording').classList.remove('hidden');
+                    document.getElementById('experiment-stop-recording').classList.add('recording');
+                }
+                
+                console.log(`开始录音 (${stage}阶段，WAV格式)`);
+                return true;
+                
+            } catch (error) {
+                console.error("录音启动失败:", error);
+                
+                let errorMessage = "录音启动失败。";
+                if (error.name === 'InvalidStateError') {
+                    errorMessage += "录音设备不可用。";
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage += "浏览器不支持录音功能。";
+                }
+                
+                alert(errorMessage);
+                return false;
+            }
+        }
+
+        // 停止录音（WAV格式）
+        function stopRecording(stage) {
+            if (experimentState.recording.isRecording && experimentState.recording.audioContext) {
+                try {
+                    // 停止录音
+                    experimentState.recording.isRecording = false;
+                    
+                    // 断开音频节点连接
+                    experimentState.recording.processor.disconnect();
+                    
+                    // 获取录音时长
+                    const duration = Date.now() - experimentState.recording.startTime;
+                    
+                    // 合并音频数据
+                    const audioData = experimentState.recording.audioData;
+                    const length = audioData.reduce((total, data) => total + data.length, 0);
+                    const mergedData = new Float32Array(length);
+                    
+                    let offset = 0;
+                    for (let i = 0; i < audioData.length; i++) {
+                        mergedData.set(audioData[i], offset);
+                        offset += audioData[i].length;
+                    }
+                    
+                    // 编码为WAV格式
+                    const wavBuffer = encodeWAV(mergedData, experimentState.recording.audioContext.sampleRate);
+                    const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+                    const audioURL = URL.createObjectURL(wavBlob);
+                    
+                    // 保存录音数据
+                    experimentState.recording.currentAudioBlob = wavBlob;
+                    experimentState.recording.currentAudioURL = audioURL;
+                    
+                    const recordingData = {
+                        audioBlob: wavBlob,
+                        audioURL: audioURL,
+                        mimeType: 'audio/wav',
+                        format: 'WAV',
+                        duration: duration,
+                        sampleRate: experimentState.recording.audioContext.sampleRate,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // 根据阶段保存录音数据
+                    if (stage === 'practice') {
+                        const currentIndex = experimentState.practice.currentIndex;
+                        experimentState.practice.responses[currentIndex] = {
+                            ...experimentState.practice.responses[currentIndex],
+                            recording: recordingData
+                        };
+                        console.log(`练习阶段第${currentIndex + 1}个词录音完成（WAV格式）`);
+                    } else {
+                        const currentIndex = experimentState.experiment.currentIndex;
+                        experimentState.experiment.responses[currentIndex] = {
+                            ...experimentState.experiment.responses[currentIndex],
+                            recording: recordingData
+                        };
+                        console.log(`正式实验第${currentIndex + 1}个词录音完成（WAV格式）`);
+                    }
+                    
+                    // 关闭音频上下文
+                    experimentState.recording.audioContext.close().then(() => {
+                        console.log("音频上下文已关闭");
+                    });
+                    
+                    // 清理录音数据
+                    experimentState.recording.audioContext = null;
+                    experimentState.recording.processor = null;
+                    experimentState.recording.audioData = [];
+                    
+                    // 更新UI状态
+                    if (stage === 'practice') {
+                        document.getElementById('practice-stop-recording').classList.add('hidden');
+                        document.getElementById('practice-stop-recording').classList.remove('recording');
+                        document.getElementById('practice-word-inputs').classList.remove('hidden');
+                        document.getElementById('practice-recording-status').textContent = "录音已完成，请输入联想词";
+                        
+                        // 激活第一个输入框
+                        activateInput('practice', 0);
+                        setTimeout(() => {
+                            document.getElementById('practice-word-1').focus();
+                        }, 100);
+                    } else {
+                        document.getElementById('experiment-stop-recording').classList.add('hidden');
+                        document.getElementById('experiment-stop-recording').classList.remove('recording');
+                        document.getElementById('experiment-word-inputs').classList.remove('hidden');
+                        document.getElementById('experiment-recording-status').textContent = "录音已完成，请输入联想词";
+                        
+                        // 激活第一个输入框
+                        activateInput('experiment', 0);
+                        setTimeout(() => {
+                            document.getElementById('experiment-word-1').focus();
+                        }, 100);
+                    }
+                    
+                    console.log(`停止录音 (${stage}阶段)`);
+                    
+                } catch (error) {
+                    console.error("停止录音失败:", error);
+                    alert("停止录音时出错：" + error.message);
+                }
+            } else {
+                console.warn("尝试停止录音，但录音器不处于活动状态");
+            }
+        }
+
+        // 重置录音状态
+        function resetRecordingState(stage) {
+            // 清理之前的录音URL
+            if (experimentState.recording.currentAudioURL) {
+                URL.revokeObjectURL(experimentState.recording.currentAudioURL);
+            }
+            
+            // 停止并清理音频上下文
+            if (experimentState.recording.audioContext && 
+                experimentState.recording.audioContext.state !== 'closed') {
+                try {
+                    experimentState.recording.audioContext.close();
+                } catch (e) {
+                    console.warn("关闭音频上下文时出错:", e);
+                }
+            }
+            
+            experimentState.recording.isRecording = false;
+            experimentState.recording.audioContext = null;
+            experimentState.recording.processor = null;
+            experimentState.recording.audioData = [];
+            experimentState.recording.startTime = null;
+            experimentState.recording.currentAudioBlob = null;
+            experimentState.recording.currentAudioURL = null;
+            
+            // 更新UI
+            if (stage === 'practice') {
+                document.getElementById('practice-start-recording').classList.add('hidden');
+                document.getElementById('practice-stop-recording').classList.add('hidden');
+                document.getElementById('practice-stop-recording').classList.remove('recording');
+                document.getElementById('practice-recording-status').textContent = '';
+            } else {
+                document.getElementById('experiment-start-recording').classList.add('hidden');
+                document.getElementById('experiment-stop-recording').classList.add('hidden');
+                document.getElementById('experiment-stop-recording').classList.remove('recording');
+                document.getElementById('experiment-recording-status').textContent = '';
+            }
+        }
+
+        // 重置输入框容器状态
+        function resetInputContainers(stage) {
+            const prefix = stage === 'practice' ? 'practice' : 'experiment';
+            
+            for (let i = 1; i <= 3; i++) {
+                const container = document.getElementById(`${prefix}-word-${i}-container`);
+                container.classList.remove('active', 'completed');
+            }
+        }
+
+        // 激活输入框
+        function activateInput(stage, index) {
+            const prefix = stage === 'practice' ? 'practice' : 'experiment';
+            
+            resetInputContainers(stage);
+            
+            const container = document.getElementById(`${prefix}-word-${index + 1}-container`);
+            container.classList.add('active');
+            
+            if (stage === 'practice') {
+                experimentState.practice.currentInputIndex = index;
+            } else {
+                experimentState.experiment.currentInputIndex = index;
+            }
+        }
+
+        // 标记输入框为完成
+        function completeInput(stage, index) {
+            const prefix = stage === 'practice' ? 'practice' : 'experiment';
+            const container = document.getElementById(`${prefix}-word-${index + 1}-container`);
+            container.classList.remove('active');
+            container.classList.add('completed');
+        }
+
+        // 保存当前词的反应
+        function saveResponse(stage) {
+            const currentIndex = stage === 'practice' ? 
+                experimentState.practice.currentIndex : 
+                experimentState.experiment.currentIndex;
+                
+            const currentWord = stage === 'practice' ? 
+                experimentState.practice.words[currentIndex] : 
+                experimentState.experiment.words[currentIndex];
+            
+            const word1 = stage === 'practice' ? 
+                document.getElementById('practice-word-1').value.trim() : 
+                document.getElementById('experiment-word-1').value.trim();
+                
+            const word2 = stage === 'practice' ? 
+                document.getElementById('practice-word-2').value.trim() : 
+                document.getElementById('experiment-word-2').value.trim();
+                
+            const word3 = stage === 'practice' ? 
+                document.getElementById('practice-word-3').value.trim() : 
+                document.getElementById('experiment-word-3').value.trim();
+            
+            const response = {
+                stimulus: currentWord.text,
+                audioFile: currentWord.audioFile,
+                responseTime: Date.now(),
+                associations: [word1, word2, word3]
+            };
+            
+            if (stage === 'practice') {
+                experimentState.practice.responses[currentIndex] = {
+                    ...experimentState.practice.responses[currentIndex],
+                    ...response
+                };
+            } else {
+                experimentState.experiment.responses[currentIndex] = {
+                    ...experimentState.experiment.responses[currentIndex],
+                    ...response
+                };
+            }
+        }
+
+        // 处理下一试次
+        function goToNextTrial(stage) {
+            saveResponse(stage);
+            
+            if (stage === 'practice') {
+                experimentState.practice.currentIndex++;
+                
+                if (experimentState.practice.currentIndex < experimentState.practice.words.length) {
+                    // 显示下一个词
+                    showPracticeWord();
+                    updatePracticeProgress();
+                    
+                    // 重置录音状态
+                    resetRecordingState('practice');
+                    
+                    // 延迟播放音频
+                    setTimeout(() => {
+                        playPracticeAudio();
+                    }, 500);
+                } else {
+                    // 记录练习结束时间
+                    experimentState.practice.endTime = new Date();
+                    console.log("练习阶段完成");
+                    goToStage('experiment');
+                }
+            } else {
+                experimentState.experiment.currentIndex++;
+                
+                if (experimentState.experiment.currentIndex < experimentState.experiment.words.length) {
+                    // 显示下一个词
+                    showExperimentWord();
+                    updateExperimentProgress();
+                    
+                    // 重置录音状态
+                    resetRecordingState('experiment');
+                    
+                    // 延迟播放音频
+                    setTimeout(() => {
+                        playExperimentAudio();
+                    }, 500);
+                } else {
+                    // 记录实验结束时间
+                    experimentState.experimentEndTime = new Date();
+                    experimentState.experiment.endTime = new Date();
+                    console.log("正式实验完成");
+                    goToStage('complete');
+                }
+            }
+        }
+
+        // 检查是否可以进入下一试次
+        function canGoToNextTrial(stage) {
+            const word1 = stage === 'practice' ? 
+                document.getElementById('practice-word-1').value.trim() : 
+                document.getElementById('experiment-word-1').value.trim();
+                
+            const word2 = stage === 'practice' ? 
+                document.getElementById('practice-word-2').value.trim() : 
+                document.getElementById('experiment-word-2').value.trim();
+                
+            const word3 = stage === 'practice' ? 
+                document.getElementById('practice-word-3').value.trim() : 
+                document.getElementById('experiment-word-3').value.trim();
+            
+            return word1 !== '' && word2 !== '' && word3 !== '';
+        }
+
+        // 准备下载数据
+        function prepareDownloadData() {
+            // 创建实验数据对象
+            const experimentData = {
+                participantInfo: experimentState.participantInfo,
+                practiceResponses: experimentState.practice.responses,
+                experimentResponses: experimentState.experiment.responses,
+                completionTime: new Date().toISOString(),
+                experimentStartTime: experimentState.experimentStartTime ? experimentState.experimentStartTime.toISOString() : null,
+                experimentEndTime: experimentState.experimentEndTime ? experimentState.experimentEndTime.toISOString() : null,
+                practiceStartTime: experimentState.practice.startTime ? experimentState.practice.startTime.toISOString() : null,
+                practiceEndTime: experimentState.practice.endTime ? experimentState.practice.endTime.toISOString() : null
+            };
+            
+            // 将数据保存到全局变量
+            window.experimentData = experimentData;
+            
+            // 显示数据摘要
+            displayDataSummary();
+        }
+
+        // 显示数据摘要
+        function displayDataSummary() {
+            const dataSummaryDiv = document.getElementById('data-summary');
+            
+            // 计算总耗时
+            let totalDuration = "N/A";
+            if (experimentState.experimentStartTime && experimentState.experimentEndTime) {
+                const durationMs = experimentState.experimentEndTime - experimentState.experimentStartTime;
+                const minutes = Math.floor(durationMs / 60000);
+                const seconds = Math.floor((durationMs % 60000) / 1000);
+                totalDuration = `${minutes}分${seconds}秒`;
+            }
+            
+            // 计算练习耗时
+            let practiceDuration = "N/A";
+            if (experimentState.practice.startTime && experimentState.practice.endTime) {
+                const durationMs = experimentState.practice.endTime - experimentState.practice.startTime;
+                const minutes = Math.floor(durationMs / 60000);
+                const seconds = Math.floor((durationMs % 60000) / 1000);
+                practiceDuration = `${minutes}分${seconds}秒`;
+            }
+            
+            // 统计录音文件
+            let practiceRecordings = experimentState.practice.responses.filter(r => r.recording).length;
+            let experimentRecordings = experimentState.experiment.responses.filter(r => r.recording).length;
+            let totalRecordings = practiceRecordings + experimentRecordings;
+            
+            dataSummaryDiv.innerHTML = `
+                <h3>实验数据摘要</h3>
+                <p><strong>被试姓名:</strong> ${experimentState.participantInfo.id || '未提供'}</p>
+                <p><strong>年龄:</strong> ${experimentState.participantInfo.age || '未提供'}</p>
+                <p><strong>性别:</strong> ${experimentState.participantInfo.gender === 'male' ? '男性' : experimentState.participantInfo.gender === 'female' ? '女性' : '未提供'}</p>
+                <p><strong>实验日期:</strong> ${experimentState.participantInfo.date || '未提供'}</p>
+                <p><strong>练习开始时间:</strong> ${experimentState.practice.startTime ? experimentState.practice.startTime.toLocaleString() : 'N/A'}</p>
+                <p><strong>练习结束时间:</strong> ${experimentState.practice.endTime ? experimentState.practice.endTime.toLocaleString() : 'N/A'}</p>
+                <p><strong>练习耗时:</strong> ${practiceDuration}</p>
+                <p><strong>正式实验开始时间:</strong> ${experimentState.experimentStartTime ? experimentState.experimentStartTime.toLocaleString() : 'N/A'}</p>
+                <p><strong>正式实验结束时间:</strong> ${experimentState.experimentEndTime ? experimentState.experimentEndTime.toLocaleString() : 'N/A'}</p>
+                <p><strong>正式实验总耗时:</strong> ${totalDuration}</p>
+                <p><strong>完成练习词数:</strong> ${experimentState.practice.responses.length} / ${config.practiceWordList.length}</p>
+                <p><strong>完成正式实验词数:</strong> ${experimentState.experiment.responses.length} / ${config.wordList.length}</p>
+                <p><strong>录音文件数（WAV格式）:</strong> ${totalRecordings} 个 (练习: ${practiceRecordings}, 正式: ${experimentRecordings})</p>
+            `;
+        }
+
+        // 生成实验摘要TXT文件内容
+        function generateSummaryTxt() {
+            let summary = "=== 联想词实验数据摘要 ===\n\n";
+            
+            // 被试信息
+            summary += "【被试信息】\n";
+            summary += `姓名: ${experimentState.participantInfo.id || '未提供'}\n`;
+            summary += `年龄: ${experimentState.participantInfo.age || '未提供'}\n`;
+            summary += `性别: ${experimentState.participantInfo.gender === 'male' ? '男性' : experimentState.participantInfo.gender === 'female' ? '女性' : '未提供'}\n`;
+            summary += `实验日期: ${experimentState.participantInfo.date || '未提供'}\n\n`;
+            
+            // 时间信息
+            summary += "【时间信息】\n";
+            summary += `练习开始时间: ${experimentState.practice.startTime ? experimentState.practice.startTime.toLocaleString() : 'N/A'}\n`;
+            summary += `练习结束时间: ${experimentState.practice.endTime ? experimentState.practice.endTime.toLocaleString() : 'N/A'}\n`;
+            
+            if (experimentState.practice.startTime && experimentState.practice.endTime) {
+                const practiceDurationMs = experimentState.practice.endTime - experimentState.practice.startTime;
+                const practiceMinutes = Math.floor(practiceDurationMs / 60000);
+                const practiceSeconds = Math.floor((practiceDurationMs % 60000) / 1000);
+                summary += `练习耗时: ${practiceMinutes}分${practiceSeconds}秒\n`;
+            }
+            
+            summary += `正式实验开始时间: ${experimentState.experimentStartTime ? experimentState.experimentStartTime.toLocaleString() : 'N/A'}\n`;
+            summary += `正式实验结束时间: ${experimentState.experimentEndTime ? experimentState.experimentEndTime.toLocaleString() : 'N/A'}\n`;
+            
+            if (experimentState.experimentStartTime && experimentState.experimentEndTime) {
+                const experimentDurationMs = experimentState.experimentEndTime - experimentState.experimentStartTime;
+                const experimentMinutes = Math.floor(experimentDurationMs / 60000);
+                const experimentSeconds = Math.floor((experimentDurationMs % 60000) / 1000);
+                summary += `正式实验耗时: ${experimentMinutes}分${experimentSeconds}秒\n`;
+            }
+            
+            summary += "\n";
+            
+            // 数据统计
+            summary += "【数据统计】\n";
+            summary += `练习词完成数: ${experimentState.practice.responses.length} / ${config.practiceWordList.length}\n`;
+            summary += `正式实验词完成数: ${experimentState.experiment.responses.length} / ${config.wordList.length}\n`;
+            summary += `录音文件数: ${experimentState.practice.responses.filter(r => r.recording).length + experimentState.experiment.responses.filter(r => r.recording).length} 个 (全部为WAV格式)\n`;
+            summary += `总完成词数: ${experimentState.practice.responses.length + experimentState.experiment.responses.length} / ${config.practiceWordList.length + config.wordList.length}\n\n`;
+            
+            // 数据文件信息
+            summary += "【文件说明】\n";
+            summary += "1. experiment_data.json - 完整的实验数据（包含所有反应和录音信息）\n";
+            summary += "2. audio/ - 录音音频文件目录（WAV格式，通用音频格式）\n";
+            summary += "3. summary.txt - 本摘要文件\n";
+            summary += "\n";
+            summary += "生成时间: " + new Date().toLocaleString() + "\n";
+            
+            return summary;
+        }
+
+        // 下载压缩包
+        async function downloadZip() {
+            if (!window.experimentData) {
+                alert("没有可下载的数据。");
+                return;
+            }
+            
+            const downloadProgress = document.getElementById('download-progress');
+            const progressBar = document.getElementById('download-progress-bar');
+            const progressText = document.getElementById('download-progress-text');
+            
+            // 显示进度条
+            downloadProgress.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressText.textContent = "正在准备压缩包...";
+            
+            try {
+                const zip = new JSZip();
+                let totalFiles = 0;
+                let processedFiles = 0;
+                
+                // 1. 添加JSON数据文件
+                progressText.textContent = "正在生成数据文件...";
+                const dataStr = JSON.stringify(window.experimentData, null, 2);
+                zip.file("experiment_data.json", dataStr);
+                processedFiles++;
+                progressBar.style.width = `${(processedFiles / 3) * 100}%`;
+                
+                // 2. 添加摘要TXT文件
+                progressText.textContent = "正在生成实验摘要...";
+                const summaryTxt = generateSummaryTxt();
+                zip.file("summary.txt", summaryTxt);
+                processedFiles++;
+                progressBar.style.width = `${(processedFiles / 3) * 100}%`;
+                
+                // 3. 创建audio文件夹并添加所有录音文件
+                progressText.textContent = "正在处理录音文件...";
+                const audioFolder = zip.folder("audio");
+                
+                // 添加练习阶段录音
+                for (let i = 0; i < experimentState.practice.responses.length; i++) {
+                    const response = experimentState.practice.responses[i];
+                    if (response.recording && response.recording.audioBlob) {
+                        // 文件扩展名为.wav
+                        const fileName = `practice_${i+1}_${response.stimulus}.wav`;
+                        audioFolder.file(fileName, response.recording.audioBlob);
+                        totalFiles++;
+                    }
+                }
+                
+                // 添加正式实验录音
+                for (let i = 0; i < experimentState.experiment.responses.length; i++) {
+                    const response = experimentState.experiment.responses[i];
+                    if (response.recording && response.recording.audioBlob) {
+                        // 文件扩展名为.wav
+                        const fileName = `experiment_${i+1}_${response.stimulus}.wav`;
+                        audioFolder.file(fileName, response.recording.audioBlob);
+                        totalFiles++;
+                    }
+                }
+                
+                processedFiles++;
+                progressBar.style.width = `${(processedFiles / 3) * 100}%`;
+                
+                // 生成压缩包
+                progressText.textContent = "正在生成压缩文件...";
+                const content = await zip.generateAsync({type: "blob"}, (metadata) => {
+                    if (metadata.percent) {
+                        progressBar.style.width = `${metadata.percent}%`;
+                        progressText.textContent = `正在压缩: ${metadata.percent.toFixed(1)}%`;
+                    }
+                });
+                
+                // 下载文件
+                progressText.textContent = "正在下载...";
+                const participantName = experimentState.participantInfo.id || 'anonymous';
+                const fileName = `联想词实验_${participantName}_${new Date().toISOString().slice(0,10)}.zip`;
+                
+                // 使用FileSaver下载
+                saveAs(content, fileName);
+                
+                // 下载完成后重置进度条
+                setTimeout(() => {
+                    progressText.textContent = "下载完成！";
+                    setTimeout(() => {
+                        downloadProgress.style.display = 'none';
+                        progressBar.style.width = '0%';
+                        progressText.textContent = "正在准备下载文件...";
+                    }, 2000);
+                }, 500);
+                
+            } catch (error) {
+                console.error("生成压缩包失败:", error);
+                alert("生成压缩包时出错，请重试。错误信息: " + error.message);
+                downloadProgress.style.display = 'none';
+            }
+        }
+
+        // 收集个人信息
+        function collectParticipantInfo() {
+            experimentState.participantInfo = {
+                id: document.getElementById('participant-id').value.trim(),
+                age: document.getElementById('participant-age').value,
+                gender: document.getElementById('participant-gender').value,
+                date: document.getElementById('experiment-date').value || new Date().toISOString().split('T')[0]
+            };
+            
+            if (!experimentState.participantInfo.id) {
+                alert("请输入姓名");
+                return false;
+            }
+            
+            return true;
+        }
+
+        // 处理键盘事件
+        function handleKeyEvents(event) {
+            const stage = experimentState.currentStage;
+            
+            // 阻止空格键的默认行为（滚动页面）
+            if (event.code === 'Space') {
+                event.preventDefault();
+            }
+            
+            // 空格键：停止录音（仅在录音时有效）
+            if (event.code === 'Space' && experimentState.recording.isRecording) {
+                console.log("空格键按下，停止录音");
+                if (stage === 'practice') {
+                    stopRecording('practice');
+                } else if (stage === 'experiment') {
+                    stopRecording('experiment');
+                }
+                return;
+            }
+            
+            // 处理输入框的键盘导航
+            if (!(stage === 'practice' || stage === 'experiment')) {
+                return;
+            }
+            
+            // Enter键：完成当前输入或进入下一试次
+            if (event.code === 'Enter' && event.target.tagName === 'INPUT') {
+                event.preventDefault();
+                
+                const isPractice = stage === 'practice';
+                const currentInputIndex = isPractice ? 
+                    experimentState.practice.currentInputIndex : 
+                    experimentState.experiment.currentInputIndex;
+                
+                // 标记当前输入框为完成
+                completeInput(stage, currentInputIndex);
+                
+                // 如果有下一个输入框，切换到它
+                if (currentInputIndex < 2) {
+                    const newIndex = currentInputIndex + 1;
+                    activateInput(stage, newIndex);
+                    
+                    const inputId = isPractice ? 
+                        `practice-word-${newIndex + 1}` : 
+                        `experiment-word-${newIndex + 1}`;
+                    document.getElementById(inputId).focus();
+                } else {
+                    // 如果是最后一个输入框，检查是否所有输入都已完成
+                    if (canGoToNextTrial(stage)) {
+                        goToNextTrial(stage);
+                    } else {
+                        alert("请完成所有三个联想词的输入后再进入下一试次。");
+                        // 回到第一个输入框
+                        activateInput(stage, 0);
+                        const inputId = isPractice ? 
+                            `practice-word-1` : 
+                            `experiment-word-1`;
+                        document.getElementById(inputId).focus();
+                    }
+                }
+            }
+            
+            // Tab键：切换输入框（仅在输入框焦点时处理）
+            if (event.code === 'Tab' && event.target.tagName === 'INPUT') {
+                event.preventDefault();
+                
+                const isPractice = stage === 'practice';
+                const currentInputIndex = isPractice ? 
+                    experimentState.practice.currentInputIndex : 
+                    experimentState.experiment.currentInputIndex;
+                
+                // 如果当前输入框有内容，标记为完成
+                if (event.target.value.trim() !== '') {
+                    completeInput(stage, currentInputIndex);
+                }
+                
+                let newIndex;
+                if (event.shiftKey) {
+                    // Shift+Tab：向前移动
+                    newIndex = currentInputIndex > 0 ? currentInputIndex - 1 : 2;
+                } else {
+                    // Tab：向后移动
+                    newIndex = currentInputIndex < 2 ? currentInputIndex + 1 : 0;
+                }
+                
+                activateInput(stage, newIndex);
+                
+                const inputId = isPractice ? 
+                    `practice-word-${newIndex + 1}` : 
+                    `experiment-word-${newIndex + 1}`;
+                document.getElementById(inputId).focus();
+            }
+        }
+
+        // 清理函数，在页面关闭时清理录音资源
+        function cleanupRecordingResources() {
+            // 停止录音
+            if (experimentState.recording.isRecording && experimentState.recording.audioContext) {
+                try {
+                    experimentState.recording.processor.disconnect();
+                    experimentState.recording.audioContext.close();
+                } catch (e) {
+                    console.warn("清理录音资源时出错:", e);
+                }
+            }
+            
+            // 关闭音频流
+            if (experimentState.recording.audioStream) {
+                experimentState.recording.audioStream.getTracks().forEach(track => track.stop());
+            }
+            
+            // 清理对象URL
+            if (experimentState.recording.currentAudioURL) {
+                URL.revokeObjectURL(experimentState.recording.currentAudioURL);
+            }
+            
+            // 停止所有音频播放
+            if (experimentState.currentAudio) {
+                experimentState.currentAudio.pause();
+                experimentState.currentAudio = null;
+            }
+            
+            console.log("录音资源已清理");
+        }
+
+        // 页面卸载时清理资源
+        window.addEventListener('beforeunload', cleanupRecordingResources);
+
+        // 事件监听器初始化
+        function initEventListeners() {
+            // 导航按钮
+            document.getElementById('btn-next-from-instructions').addEventListener('click', () => goToStage('info'));
+            document.getElementById('btn-back-to-instructions').addEventListener('click', () => goToStage('instructions'));
+            document.getElementById('btn-next-from-info').addEventListener('click', () => {
+                if (collectParticipantInfo()) {
+                    goToStage('permission');
+                }
+            });
+            document.getElementById('btn-back-to-info-from-permission').addEventListener('click', () => goToStage('info'));
+            document.getElementById('btn-back-to-permission-from-practice').addEventListener('click', () => goToStage('permission'));
+            document.getElementById('btn-skip-practice').addEventListener('click', () => goToStage('experiment'));
+            document.getElementById('btn-back-to-practice').addEventListener('click', () => goToStage('practice'));
+            
+            // 权限请求
+            document.getElementById('btn-request-permission').addEventListener('click', requestPermissionOnLoad);
+            
+            // 练习阶段手动控制
+            document.getElementById('practice-play-audio').addEventListener('click', () => {
+                console.log("手动播放练习音频");
+                playPracticeAudio();
+            });
+            
+            document.getElementById('practice-start-recording').addEventListener('click', async () => {
+                console.log("手动开始练习录音");
+                await startRecording('practice');
+            });
+            
+            document.getElementById('practice-stop-recording').addEventListener('click', () => {
+                console.log("手动停止练习录音");
+                stopRecording('practice');
+            });
+            
+            // 正式实验阶段手动控制
+            document.getElementById('experiment-play-audio').addEventListener('click', () => {
+                console.log("手动播放实验音频");
+                playExperimentAudio();
+            });
+            
+            document.getElementById('experiment-start-recording').addEventListener('click', async () => {
+                console.log("手动开始实验录音");
+                await startRecording('experiment');
+            });
+            
+            document.getElementById('experiment-stop-recording').addEventListener('click', () => {
+                console.log("手动停止实验录音");
+                stopRecording('experiment');
+            });
+            
+            // 下载数据
+            document.getElementById('btn-download-data').addEventListener('click', downloadZip);
+            
+            // 键盘事件监听
+            document.addEventListener('keydown', handleKeyEvents);
+            
+            // 输入框焦点事件
+            for (let i = 1; i <= 3; i++) {
+                const practiceInput = document.getElementById(`practice-word-${i}`);
+                const experimentInput = document.getElementById(`experiment-word-${i}`);
+                
+                if (practiceInput) {
+                    practiceInput.addEventListener('focus', () => {
+                        activateInput('practice', i-1);
+                    });
+                }
+                
+                if (experimentInput) {
+                    experimentInput.addEventListener('focus', () => {
+                        activateInput('experiment', i-1);
+                    });
+                }
+            }
+            
+            // 设置默认日期为今天
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('experiment-date');
+            if (dateInput) {
+                dateInput.value = today;
+                dateInput.min = "2000-01-01";
+                dateInput.max = today;
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initEventListeners();
+            
+            // 在控制台输出提示信息
+            console.log("联想词实验已初始化（WAV格式录音）");
+            console.log("请确保音频文件存在于以下路径：");
+            console.log("- audio/tuoxie_1.mp3");
+            console.log("- audio/huasheng_1.mp3");
+            console.log("等等...");
+            
+            // 测试环境支持
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.warn("当前浏览器不支持getUserMedia API");
+                alert("警告：您的浏览器可能不支持录音功能。请使用最新版本的Chrome、Firefox或Edge浏览器。");
+            }
+            
+            // 测试AudioContext支持
+            if (!window.AudioContext && !window.webkitAudioContext) {
+                console.warn("当前浏览器不支持AudioContext API");
+                alert("警告：您的浏览器可能不支持WAV格式录音。请使用最新版本的Chrome、Firefox或Edge浏览器。");
+            }
+        });
+    </script>
+</body>
+</html>
